@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: augmentor-service
+  name: gateway-service
 spec:
   # comment or delete the following line if you want to use a LoadBalancer
   type: NodePort
@@ -12,6 +12,41 @@ spec:
   - port: 80
     targetPort: 8080
     nodePort: 32522
+  selector:
+    app: gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interceptor-gateway
+  labels:
+    app: gateway
+spec:
+  selector:
+    matchLabels:
+      app: gateway
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+      - name: gateway
+        image: interceptor/gateway:1.2
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: augmentor-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
   selector:
     app: augmentor
 ---
@@ -34,6 +69,41 @@ spec:
       containers:
       - name: augmentor
         image: interceptor/augmentor:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interceptor-frontend
+  labels:
+    app: frontend
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: interceptor/frontend:1.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
